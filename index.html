@@ -1,19 +1,9 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZTHFHGYE1F"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-ZTHFHGYE1F');
-    </script>
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BriefHub WX - Flight Briefing</title>
+    <title>AviationBrief - WX</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; color: #333; max-width: 950px; margin: 0 auto; padding: 20px; background-color: #fff; }
@@ -134,7 +124,7 @@
         { title: "国内悪天予想図", file: "FBJP_Latest.png" },
     ];
 
-const airportConfig = {
+    const airportConfig = {
         // --- 北海道 ---
         "RJCW": { fbos: ["FBOS06_Hokkaido_Latest.png", "FBOS39_Hokkaido_Latest.png"], ash: [] },
         "RJER": { fbos: ["FBOS06_Hokkaido_Latest.png", "FBOS39_Hokkaido_Latest.png"], ash: [] },
@@ -162,7 +152,7 @@ const airportConfig = {
         "RJSC": { fbos: ["FBOS06_Tohoku_Latest.png", "FBOS39_Tohoku_Latest.png"], ash: [] },
         "RJST": { fbos: ["FBOS06_Tohoku_Latest.png", "FBOS39_Tohoku_Latest.png"], ash: [] },
         "RJSS": { fbos: ["FBOS06_Tohoku_Latest.png", "FBOS39_Tohoku_Latest.png"], ash: [] },
-        "RJSF": { fbos: ["FBOS06_Tohoku_Latest.png", "FBOS39_Tohoku_Latest.png"], ash: [] },
+        "RJSF": { fbos: ["FBOS06_Tohoku_Latest.png", "FBOS39_Tohoku_Latest.png"], ash: [], kaisetsu: ["kaisetsu_tanki_latest.png"] },
 
         // --- 東日本 ---
         "RJSD": { fbos: ["FBOS06_East_Latest.png", "FBOS39_East_Latest.png"], ash: [] },
@@ -247,7 +237,8 @@ const airportConfig = {
         genBtn.disabled = true;
         currentImages = [];
 
-        const config = airportConfig[icao] || { fbos: [], ash: [] };
+        const config = airportConfig[icao] || { fbos: [], ash: [], kaisetsu: [] };
+        
         const targetList = [
             ...commonCharts.map(c => ({ title: c.title, url: `images/${c.file}` })),
             ...config.fbos.map(f => {
@@ -257,6 +248,7 @@ const airportConfig = {
                 return { title: fbosTitle, url: `images/${f}` };
             }),
             ...config.ash.map(a => ({ title: "降灰予想図", url: `images/${a}` })),
+            ...(config.kaisetsu || []).map(k => ({ title: "短期予報解説資料", url: `images/${k}` })),
             { title: "飛行場時系列予報 Part1", url: `${WORKER_URL}/?icao=${icao}&type=QMCD98` },
             { title: "飛行場時系列予報 Part2", url: `${WORKER_URL}/?icao=${icao}&type=QMCJ98` }
         ];
@@ -296,7 +288,7 @@ const airportConfig = {
         }
 
         const overlay = document.getElementById('pdf-overlay');
-        
+
         // 1. ポップアップを表示
         overlay.style.display = 'flex';
 
@@ -324,7 +316,7 @@ const airportConfig = {
                     const maxW = pageWidth - margin * 2;
                     const maxH = pageHeight - margin * 2;
 
-                    const ratio = Math.min(maxW / width, maxH / height);
+                    const ratio = Math.min(maxW / width, maxH / height); // 縦横比維持
                     const drawW = width * ratio;
                     const drawH = height * ratio;
 
@@ -341,7 +333,7 @@ const airportConfig = {
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `BriefHub_WX_${icao}.pdf`;
+            link.download = `AviationBrief_WX_${icao}.pdf`;
             link.click();
 
         } catch (error) {
