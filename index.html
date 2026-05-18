@@ -23,12 +23,11 @@
         .btn-pdf { background-color: #28a745; }
         .btn-pdf:hover { background-color: #218838; }
 
-        /* PDF生成中ポップアップ用のスタイル */
         .overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.5);
-            display: none; /* 初期状態は非表示 */
+            display: none; 
             justify-content: center;
             align-items: center;
             z-index: 9999;
@@ -56,7 +55,6 @@
             100% { transform: rotate(360deg); } 
         }
 
-        /* 天気図表示用カードスタイル */
         .card { 
             border-left: 4px solid #0078D4; border-top: 1px solid #eee; border-right: 1px solid #eee; 
             border-bottom: 1px solid #eee; padding: 15px; margin-bottom: 25px; border-radius: 0 4px 4px 0; 
@@ -74,7 +72,6 @@
 </head>
 <body>
 
-    <!-- PDF生成中のオーバーレイ -->
     <div id="pdf-overlay" class="overlay">
         <div class="overlay-content">
             <div class="spinner"></div>
@@ -91,13 +88,11 @@
         <button id="pdf-btn" onclick="downloadAllAsPDF()" class="btn-pdf">Download PDF</button>
     </div>
 
-    <div id="result">
-    </div>
+    <div id="result"></div>
 
 <script>
     const WORKER_URL = "https://taf-proxy.bbfn2187.workers.dev";
 
-    // ページ読み込み時に保存されたICAOコードを復元
     window.onload = () => {
         const savedIcao = localStorage.getItem('briefing_icao');
         if (savedIcao) {
@@ -105,27 +100,28 @@
         }
     };
 
-    // 入力されるたびにlocalStorageへ保存
     function saveToLocal() {
         const icao = document.getElementById('icao').value.toUpperCase();
         localStorage.setItem('briefing_icao', icao);
     }
 
+    // 定数・設定データ定義
     const commonCharts = [
-        { title: "ASAS Prior", file: "ASAS_Prior.png" },
-        { title: "AUPQ35", file: "AUPQ35_Latest.png" },
-        { title: "AUPQ78", file: "AUPQ78_Latest.png" },
-        { title: "ASAS Latest", file: "ASAS_Latest.png" },
-        { title: "FSAS24", file: "FSAS_Latest.png" },
-        { title: "FXFE502", file: "FXFE502_Latest.png" },
-        { title: "FXFE5782", file: "FXFE5782_Latest.png" },
-        { title: "FXJP854", file: "FXJP854_Latest.png" },
-        { title: "国内航空路予想断面図", file: "FXJP106_Latest.png" },
-        { title: "国内悪天予想図", file: "FBJP_Latest.png" },
+        { title: "ASAS Prior", file: "ASAS_Prior.png", isWorker: false },
+        { title: "AUPQ35", file: "AUPQ35_Latest.png", isWorker: false },
+        { title: "AUPQ78", file: "AUPQ78_Latest.png", isWorker: false },
+        { title: "ASAS Latest", file: "ASAS_Latest.png", isWorker: false },
+        { title: "可視画像", file: "himawari_vis", isWorker: true }, 
+        { title: "赤外画像", file: "himawari_ir", isWorker: true }, 
+        { title: "FSAS24", file: "FSAS_Latest.png", isWorker: false },
+        { title: "FXFE502", file: "FXFE502_Latest.png", isWorker: false },
+        { title: "FXFE5782", file: "FXFE5782_Latest.png", isWorker: false },
+        { title: "FXJP854", file: "FXJP854_Latest.png", isWorker: false },
+        { title: "国内航空路予想断面図", file: "FXJP106_Latest.png", isWorker: false },
+        { title: "国内悪天予想図", file: "FBJP_Latest.png", isWorker: false },
     ];
 
     const airportConfig = {
-        // --- 北海道 ---
         "RJCW": { fbos: ["FBOS06_Hokkaido_Latest.png", "FBOS39_Hokkaido_Latest.png"], ash: [] },
         "RJER": { fbos: ["FBOS06_Hokkaido_Latest.png", "FBOS39_Hokkaido_Latest.png"], ash: [] },
         "RJEB": { fbos: ["FBOS06_Hokkaido_Latest.png", "FBOS39_Hokkaido_Latest.png"], ash: [] },
@@ -140,8 +136,6 @@
         "RJCY": { fbos: ["FBOS06_Hokkaido_Latest.png", "FBOS39_Hokkaido_Latest.png"], ash: [] },
         "RJEO": { fbos: ["FBOS06_Hokkaido_Latest.png", "FBOS39_Hokkaido_Latest.png"], ash: [] },
         "RJCH": { fbos: ["FBOS06_Hokkaido_Latest.png", "FBOS39_Hokkaido_Latest.png"], ash: [] },
-
-        // --- 東北 ---
         "RJSO": { fbos: ["FBOS06_Tohoku_Latest.png", "FBOS39_Tohoku_Latest.png"], ash: [] },
         "RJSA": { fbos: ["FBOS06_Tohoku_Latest.png", "FBOS39_Tohoku_Latest.png"], ash: [] },
         "RJSM": { fbos: ["FBOS06_Tohoku_Latest.png", "FBOS39_Tohoku_Latest.png"], ash: [] },
@@ -153,8 +147,6 @@
         "RJST": { fbos: ["FBOS06_Tohoku_Latest.png", "FBOS39_Tohoku_Latest.png"], ash: [] },
         "RJSS": { fbos: ["FBOS06_Tohoku_Latest.png", "FBOS39_Tohoku_Latest.png"], ash: [] },
         "RJSF": { fbos: ["FBOS06_Tohoku_Latest.png", "FBOS39_Tohoku_Latest.png"], ash: [], kaisetsu: ["kaisetsu_tanki_latest.png"] },
-
-        // --- 東日本 ---
         "RJSD": { fbos: ["FBOS06_East_Latest.png", "FBOS39_East_Latest.png"], ash: [] },
         "RJSN": { fbos: ["FBOS06_East_Latest.png", "FBOS39_East_Latest.png"], ash: [] },
         "RJAH": { fbos: ["FBOS06_East_Latest.png", "FBOS39_East_Latest.png"], ash: [] },
@@ -175,8 +167,6 @@
         "RJAZ": { fbos: ["FBOS06_East_Latest.png", "FBOS39_East_Latest.png"], ash: [] },
         "RJTQ": { fbos: ["FBOS06_East_Latest.png", "FBOS39_East_Latest.png"], ash: [] },
         "RJTH": { fbos: ["FBOS06_East_Latest.png", "FBOS39_East_Latest.png"], ash: [] },
-
-        // --- 西日本 ---
         "RJNO": { fbos: ["FBOS06_West_Latest.png", "FBOS39_West_Latest.png"], ash: [] },
         "RJOC": { fbos: ["FBOS06_West_Latest.png", "FBOS39_West_Latest.png"], ash: [] },
         "RJOK": { fbos: ["FBOS06_West_Latest.png", "FBOS39_West_Latest.png"], ash: [] },
@@ -197,8 +187,6 @@
         "RJFK": { fbos: ["FBOS06_West_Latest.png", "FBOS39_West_Latest.png"], ash: ["Ashfall_Sakurajima_Latest.png", "Ashfall_Kirishimayama_Latest.png"] },
         "RJFE": { fbos: ["FBOS06_West_Latest.png", "FBOS39_West_Latest.png"], ash: [] },
         "RJDT": { fbos: ["FBOS06_West_Latest.png", "FBOS39_West_Latest.png"], ash: [] },
-
-        // --- 奄美 ---
         "RJFG": { fbos: ["FBOS06_Amami_Latest.png", "FBOS39_Amami_Latest.png"], ash: [] },
         "RJFC": { fbos: ["FBOS06_Amami_Latest.png", "FBOS39_Amami_Latest.png"], ash: [] },
         "RJKA": { fbos: ["FBOS06_Amami_Latest.png", "FBOS39_Amami_Latest.png"], ash: [] },
@@ -208,8 +196,6 @@
         "RORY": { fbos: ["FBOS06_Amami_Latest.png", "FBOS39_Amami_Latest.png"], ash: [] },
         "RORK": { fbos: ["FBOS06_Amami_Latest.png", "FBOS39_Amami_Latest.png"], ash: [] },
         "ROMD": { fbos: ["FBOS06_Amami_Latest.png", "FBOS39_Amami_Latest.png"], ash: [] },
-
-        // --- 沖縄 ---
         "RORE": { fbos: ["FBOS06_Okinawa_Latest.png", "FBOS39_Okinawa_Latest.png"], ash: [] },
         "RORA": { fbos: ["FBOS06_Okinawa_Latest.png", "FBOS39_Okinawa_Latest.png"], ash: [] },
         "ROKJ": { fbos: ["FBOS06_Okinawa_Latest.png", "FBOS39_Okinawa_Latest.png"], ash: [] },
@@ -226,6 +212,7 @@
 
     let currentImages = [];
 
+    // メイン描画処理
     async function generateView() {
         const icao = document.getElementById('icao').value.toUpperCase();
         const resultDiv = document.getElementById('result');
@@ -239,8 +226,14 @@
 
         const config = airportConfig[icao] || { fbos: [], ash: [], kaisetsu: [] };
         
+        // ターゲットURLリストの組み立て（スコープ内に正しく配置）
         const targetList = [
-            ...commonCharts.map(c => ({ title: c.title, url: `images/${c.file}` })),
+            ...commonCharts.map(c => {
+                if (c.isWorker) {
+                    return { title: c.title, url: `${WORKER_URL}/?type=${c.file}` };
+                }
+                return { title: c.title, url: `images/${c.file}` };
+            }),
             ...config.fbos.map(f => {
                 let fbosTitle = "下層悪天予想図";
                 if (f.includes("06")) fbosTitle = "下層悪天予想図 6時間予想";
@@ -282,28 +275,82 @@
         genBtn.disabled = false;
     }
 
+    function addTextToImage(blob, text) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.src = URL.createObjectURL(blob);
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.drawImage(img, 0, 0);
+                
+                const fontSize = Math.max(16, Math.round(img.width * 0.025));
+                ctx.font = `bold ${fontSize}px sans-serif`;
+                
+                const paddingX = fontSize * 0.8;
+                const paddingY = fontSize * 0.5;
+                const textWidth = ctx.measureText(text).width;
+                const rectW = textWidth + paddingX * 2;
+                const rectH = fontSize + paddingY * 2;
+                
+                const rectX = img.width - rectW - fontSize * 0.5;
+                const rectY = img.height - rectH - fontSize * 0.5;
+                
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                ctx.fillRect(rectX, rectY, rectW, rectH);
+                
+                ctx.fillStyle = '#ffffff';
+                ctx.textBaseline = 'top';
+                ctx.fillText(text, rectX + paddingX, rectY + paddingY);
+                
+                canvas.toBlob((newBlob) => {
+                    newBlob.arrayBuffer().then(resolve).catch(reject);
+                }, 'image/png');
+            };
+            img.onerror = reject;
+        });
+    }
+
     async function downloadAllAsPDF() {
         if (currentImages.length === 0) {
-            return alert("先に「Generate View」を実行して画像を取得してください。");
+            return alert("先に「Generate」を実行して画像を取得してください。");
         }
 
         const overlay = document.getElementById('pdf-overlay');
-
-        // 1. ポップアップを表示
         overlay.style.display = 'flex';
 
-        // 2. 画面にポップアップが描画される時間を確保するため、少しだけ待機
         await new Promise(resolve => setTimeout(resolve, 50));
 
         try {
             const icao = document.getElementById('icao').value.toUpperCase();
-            const { PDFDocument } = PDFLib;
+            const { PDFDocument } = PDFLib; 
             const pdfDoc = await PDFDocument.create();
-
+            
             for (const item of currentImages) {
                 try {
-                    const imgBytes = await item.blob.arrayBuffer();
-                    const img = await pdfDoc.embedPng(imgBytes);
+                    let imgBytes;
+                    let labelText = "";
+                    
+                    if (item.title.includes("可視")) labelText = "可視画像";
+                    if (item.title.includes("赤外")) labelText = "赤外画像";
+
+                    if (labelText) {
+                        imgBytes = await addTextToImage(item.blob, labelText);
+                    } else {
+                        imgBytes = await item.blob.arrayBuffer();
+                    }
+
+                    const uint8Array = new Uint8Array(imgBytes);
+                    
+                    let img;
+                    if (uint8Array[0] === 0xFF && uint8Array[1] === 0xD8) {
+                        img = await pdfDoc.embedJpg(imgBytes);
+                    } else {
+                        img = await pdfDoc.embedPng(imgBytes);
+                    }
 
                     const { width, height } = img.scale(1);
                     const isLandscape = width > height;
@@ -316,17 +363,23 @@
                     const maxW = pageWidth - margin * 2;
                     const maxH = pageHeight - margin * 2;
 
-                    const ratio = Math.min(maxW / width, maxH / height); // 縦横比維持
+                    const ratio = Math.min(maxW / width, maxH / height);
                     const drawW = width * ratio;
                     const drawH = height * ratio;
 
+                    const imgX = (pageWidth - drawW) / 2;
+                    const imgY = (pageHeight - drawH) / 2;
+
                     page.drawImage(img, {
-                        x: (pageWidth - drawW) / 2,
-                        y: (pageHeight - drawH) / 2,
+                        x: imgX,
+                        y: imgY,
                         width: drawW,
                         height: drawH
                     });
-                } catch (e) { console.warn("PDF Embed Error", e); }
+
+                } catch (e) { 
+                    console.warn(`PDF Embed Error at [${item.title}]:`, e); 
+                }
             }
 
             const pdfBytes = await pdfDoc.save();
@@ -340,7 +393,6 @@
             console.error(error);
             alert("PDF生成中にエラーが発生しました。");
         } finally {
-            // 3. 処理が完了した（またはエラーになった）段階でポップアップを非表示に戻す
             overlay.style.display = 'none';
         }
     }
